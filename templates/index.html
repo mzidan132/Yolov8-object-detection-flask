@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Video</title>
+    <style>
+        #video-container {
+            width: 100%;
+            margin: auto;
+        }
+        #live-video {
+            width: 100%;
+            height: auto;
+            display: none; /* Initially hide the live video */
+        }
+    </style>
+</head>
+<body>
+    <div id="video-container">
+        <img id="live-video" src="" alt="Live Video Feed">
+    </div>
+    <button id="start-feed">Start Live Feed</button> <!-- Button to start the live feed -->
+    <script>
+        document.getElementById("start-feed").addEventListener("click", function() {
+            document.getElementById("live-video").style.display = "block"; // Show the live video
+            this.style.display = "none"; // Hide the button
+            fetch("/live_feed").then(response => {
+                document.getElementById("live-video").src = response.url; // Set the live video source
+            });
+        });
+    </script>
+    <br>
+    <h1>Upload Video</h1>
+    <form action="/vidpred" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="video/mp4">
+        <button type="submit">Submit</button>
+    </form>
+
+    <hr>
+
+    <h1>Upload Image</h1>
+    <h1>Object Detection</h1>
+    <form action="/imgpred" method="post" enctype="multipart/form-data">
+        <input type="file" name="image" accept="image/*" required>
+        <button type="submit">Upload</button>
+    </form>
+    {% if image_path %}
+        <h2>Object Detection Results</h2>
+        <img src="{{ image_path }}" alt="Object Detection Results" style="max-width: 60%;">
+    {% endif %}
+    <br>
+    
+</body>
+</html>
