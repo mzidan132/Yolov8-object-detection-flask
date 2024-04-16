@@ -1,13 +1,19 @@
-from flask import Flask, render_template, request, redirect, url_for, Response
+from flask import Flask, render_template, request, redirect, url_for, Response, jsonify
 from ultralytics import YOLO
 import cv2
 import os
 from PIL import Image
+import uuid
+import threading
+import time
 
 app = Flask(__name__)
-
-# Load the YOLOv8 model
 model = YOLO('last.pt')
+
+def generate_unique_filename(filename):
+    _, extension = os.path.splitext(filename)
+    unique_filename = str(uuid.uuid4()) + extension
+    return unique_filename
 
 @app.route('/')
 def home():
@@ -25,7 +31,8 @@ def upload_video():
             return redirect(request.url)
         
         if file:
-            video_path = os.path.join('static', 'uploaded_video.mp4')
+            unique_filename = generate_unique_filename(file.filename)
+            video_path = os.path.join('static', 'images',unique_filename)
             file.save(video_path)
             
             return redirect(url_for('video_feed', video_path=video_path))
@@ -73,10 +80,9 @@ def index():
             return redirect(request.url)
 
         if file:
-            # Save the uploaded image to a temporary location
-            image_path = "static/uploaded_image.jpg"
+            unique_filename = generate_unique_filename(file.filename)
+            image_path = os.path.join('static', 'images', unique_filename)
             file.save(image_path)
-
             # Run inference on the uploaded image
             results = model(image_path)  # results list
 
@@ -87,14 +93,11 @@ def index():
                 im_rgb = Image.fromarray(im_bgr[..., ::-1])  # RGB-order PIL image
 
                 # Save the result image
-                result_image_path = "static/result_image.jpg"
+                result_image_path = os.path.join('static','images',  unique_filename)
                 im_rgb.save(result_image_path)
 
-            # Remove the uploaded image
-            os.remove(image_path)
-
             # Render the HTML template with the result image path
-            return render_template('index.html', image_path=result_image_path)
+            return render_template('index.html', image_pred=result_image_path, image_path=image_path)
 
     # If no file is uploaded or GET request, render the form
     return render_template('index.html', image_path=None)
@@ -126,5 +129,25 @@ def generate_live_frames():
 
     cap.release()
 
+def delete_images_after_delay():
+    while True:
+        time.sleep(86400)  # Wait 1 day
+        image_folder = 'static/images'
+        for filename in os.listdir(image_folder):
+            file_path = os.path.join(image_folder, filename)
+            try:
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                print(f"Error deleting file {file_path}: {e}")
+
+# Flask route to delete images after 2 minutes
+@app.route('/delete', methods=['GET'])
+def delete():
+    threading.Thread(target=delete_images_after_delay).start()
+    return jsonify({"message": "Images will be deleted continuously after 2 minutes."})
+
+
 if __name__ == '__main__':
     app.run(debug=True)
+
