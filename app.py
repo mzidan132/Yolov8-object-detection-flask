@@ -56,7 +56,7 @@ def generate_frames(video_path):
             break
 
     cap.release()
-
+    os.remove(video_path)
 @app.route('/video_feed')
 def video_feed():
     video_path = request.args.get('video_path', None)
